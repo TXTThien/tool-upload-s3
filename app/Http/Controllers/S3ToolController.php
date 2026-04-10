@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Aws\CloudFront\CloudFrontClient;
+use ZipArchive;
+
 class S3ToolController extends Controller {
     public function getPresignUrl(Request $request)
     {
@@ -72,5 +74,75 @@ class S3ToolController extends Controller {
                 'details' => $e->getMessage()
             ], 400);
         }
+    }
+
+    public function checkKeys(Request $request){
+        $keys = $request->input('keys');
+        $keyList = array_filter(explode("\n", str_replace("\r", '', $keys)));
+
+        if (empty($keyList)) {
+            return response()->json(['error' => 'Vui lòng nhập ít nhất 1 key'], 400);
+        }
+
+        $maxKeys = config('app.max_s3_keys');
+        if (count($keyList) > $maxKeys) {
+            return response()->json(['error' => "Số lượng key quá nhiều (" . count($keyList) . "). Tối đa cho phép: $maxKeys"], 400);
+        }
+
+        $foundFiles= [];
+        foreach ($keyList as $key) {
+            if (Storage::disk('s3')->exists(trim($key))) {
+                $foundFiles[] = $key;
+            }
+        }
+        return response()->json([
+            'total_input' => count($keyList),
+            'found_count' => count($foundFiles),
+            'files' => $foundFiles
+        ]);
+    }
+
+    public function downloadKeys(Request $request) {
+        $keys = $request->input('keys');
+        $keyList = array_filter(explode("\n", str_replace("\r", '', $keys)));
+
+        if (empty($keyList)) {
+            return response()->json(['error' => 'Danh sách key trống'], 400);
+        }
+
+        $zipFileName = 's3_download_' . time() . '.zip';
+        $zipPath = storage_path('app/public/' . $zipFileName);
+        $zip = new ZipArchive;
+
+        if ($zip->open($zipPath, ZipArchive::CREATE) === TRUE) {
+            foreach ($keyList as $key) {
+                $trimmedKey = trim($key, " /");
+
+                $parentPath = dirname($trimmedKey);
+                $parentPath = ($parentPath === '.') ? '' : $parentPath . '/';
+
+                $filesToDownload = Storage::disk('s3')->allFiles($trimmedKey);
+                if (empty($filesToDownload)) {
+                    if (Storage::disk('s3')->exists($trimmedKey)) {
+                        $filesToDownload = [$trimmedKey];
+                    }
+                }
+
+                foreach ($filesToDownload as $file) {
+                    $content = Storage::disk('s3')->get($file);
+
+                    if (!empty($parentPath) && strpos($file, $parentPath) === 0) {
+                        $nameInZip = substr($file, strlen($parentPath));
+                    } else {
+                        $nameInZip = $file;
+                    }
+
+                    $zip->addFromString($nameInZip, $content);
+                }
+            }
+            $zip->close();
+        }
+
+        return response()->download($zipPath)->deleteFileAfterSend(true);
     }
 }

@@ -96,7 +96,7 @@ return [
     */
 
     'cipher' => 'AES-256-CBC',
-
+    'max_s3_keys' => env('APP_MAX_S3_KEYS', 10),
     'key' => env('APP_KEY'),
 
     'previous_keys' => [
