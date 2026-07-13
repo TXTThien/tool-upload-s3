@@ -39,10 +39,15 @@ class CmsAuth
 
     private function deny(Request $request, string $message): Response
     {
-        if ($request->expectsJson() || $request->is('api/*')) {
-            return response()->json(['error' => $message], 401);
+        // Only the root page is ever loaded via a real browser navigation;
+        // every other route is called from the page's own JS via fetch(),
+        // so a cross-origin redirect() there just gets CORS-blocked instead
+        // of reaching the user. Those must get a plain JSON 401 that the
+        // frontend can detect and turn into a real navigation itself.
+        if ($request->path() === '/') {
+            return redirect()->away(config('services.cms.login_url'));
         }
 
-        return redirect()->away(config('services.cms.login_url'));
+        return response()->json(['error' => $message], 401);
     }
 }

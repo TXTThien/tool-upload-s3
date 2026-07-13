@@ -93,6 +93,21 @@
 </div>
 <script>
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const CMS_LOGIN_URL = @json(config('services.cms.login_url'));
+
+    // Our own backend calls are always same-origin relative paths (unlike the
+    // presigned PUT to S3 itself, which is an absolute URL). A 401 here means
+    // the CMS session cookie is missing/expired — send the browser to the CMS
+    // login page directly instead of letting fetch() follow a cross-origin
+    // redirect, which the browser blocks as a CORS error.
+    const _fetch = window.fetch.bind(window);
+    window.fetch = async (input, init) => {
+        const res = await _fetch(input, init);
+        if (res.status === 401 && typeof input === 'string' && input.startsWith('/')) {
+            window.location.href = CMS_LOGIN_URL;
+        }
+        return res;
+    };
 
     function switchTab(type) {
         document.getElementById('section-upload').classList.toggle('hidden', type !== 'upload');
