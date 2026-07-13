@@ -10,7 +10,8 @@ Route::middleware([CmsAuth::class])->group(function () {
     Route::post('/cloudfront/invalidate',[\App\Http\Controllers\S3ToolController::class, 'invalidateCloudFront']);
     Route::post('/api/s3/check-keys',[\App\Http\Controllers\S3ToolController::class, 'checkKeys']);
     Route::post('/api/s3/download-zip',[\App\Http\Controllers\S3ToolController::class, 'downloadKeys']);
-
+    Route::post('api/s3/request-zip', [\App\Http\Controllers\S3ToolController::class, 'requestZipDownload']);
+    Route::get('api/s3/zip-status/{jobId}', [\App\Http\Controllers\S3ToolController::class, 'checkZipStatus']);
 });
 Route::middleware([CmsAuth::class])->group(function () {
 
