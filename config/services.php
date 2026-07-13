@@ -28,7 +28,7 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
     'cloudfront' => [
-          'distribution_id' => env('CLOUDFRONT_DISTRIBUTION_ID')
+          'distribution_id' => env('CLOUDFRONT_DISTRIBUTION_ID'),
     ],
     'slack' => [
         'notifications' => [
