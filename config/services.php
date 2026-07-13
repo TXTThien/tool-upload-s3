@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'cms' => [
+        'jwt_secret' => env('CMS_JWT_SECRET'),
+        'login_url' => env('CMS_LOGIN_URL'),
+        'auth_cookie' => env('CMS_AUTH_COOKIE', 'octokit_auth_token'),
+    ],
+
 ];
